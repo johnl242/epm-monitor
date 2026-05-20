@@ -1,8 +1,18 @@
 #!/bin/bash
 set -e
 
-# Read version from desktop/package.json
-VERSION=$(node -e "console.log(require('./desktop/package.json').version)")
+# Auto-generate version from datetime: YYYY.MMDD.HHmm
+# e.g. 2026.0520.0748  — always increases, human-readable
+VERSION=$(date +"%Y.%m%d.%H%M")
+
+# Write version into desktop/package.json
+node -e "
+  const fs = require('fs');
+  const p = JSON.parse(fs.readFileSync('./desktop/package.json'));
+  p.version = '${VERSION}';
+  fs.writeFileSync('./desktop/package.json', JSON.stringify(p, null, 2) + '\n');
+"
+
 FILENAME="EPM-Monitor-${VERSION}-win.zip"
 DIST="./desktop/dist"
 UNPACKED="$DIST/win-unpacked"
@@ -70,13 +80,12 @@ print(f"  ✓ Supabase updated")
 print(f"  Download URL: {download_url}")
 PYEOF
 
-# 5. Push version to Firebase RTDB → triggers instant update on all live clients
+# 5. Push to Firebase RTDB — instant notification to all live clients
 echo "\n[5/5] Pushing to Firebase RTDB (live client notification)..."
 RTDB_URL="https://website-bf923-default-rtdb.asia-southeast1.firebasedatabase.app/epm_releases/latest.json"
 DOWNLOAD_URL="https://pub-16c1f34c0efb439e86a8efbd83cbcc98.r2.dev/epm-releases/${VERSION}/${FILENAME}"
 RELEASED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# Use database secret if set, otherwise use open test mode
 if [ -n "$FIREBASE_DB_SECRET" ]; then
   RTDB_AUTH="?auth=${FIREBASE_DB_SECRET}"
 else
@@ -91,9 +100,9 @@ HTTP_STATUS=$(curl -s -o /tmp/rtdb_response.txt -w "%{http_code}" \
 if [ "$HTTP_STATUS" = "200" ]; then
   echo "  ✓ Firebase RTDB updated — clients notified in real-time"
 else
-  echo "  ⚠ RTDB update failed (HTTP $HTTP_STATUS) — clients will still get update via Supabase poll"
+  echo "  ⚠ RTDB update failed (HTTP $HTTP_STATUS)"
   cat /tmp/rtdb_response.txt
 fi
 
 echo "\n✅ Done! v${VERSION} is live."
-echo "   All connected clients will see the update prompt within seconds."
+echo "   All connected clients will be notified within seconds."
