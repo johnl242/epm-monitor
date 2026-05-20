@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>EPM Monitor - License</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    .icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 40px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+
+    .message {
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #fff;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: none;
+      letter-spacing: normal;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      background: #fff;
+      color: #991b1b;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.3);
+    }
+
+    button:disabled {
+      background: rgba(255, 255, 255, 0.5);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: 8px;
+    }
+
+    .demo-note {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">!</div>
+    <h1>License Required</h1>
+    <p class="message" id="message">
+      Please enter your license key to continue using EPM Monitor.
+    </p>
+
+    <form id="licenseForm">
+      <div class="form-group">
+        <label for="licenseKey">License Key</label>
+        <input type="text" id="licenseKey" placeholder="XXXX-XXXX-XXXX-XXXX" required>
+        <p class="hint">Enter the 16-character license key provided by your administrator</p>
+      </div>
+
+      <button type="submit" id="submitBtn">Activate License</button>
+    </form>
+
+    <div class="demo-note">
+      <strong>Demo Mode:</strong> Enter any 16-character key to continue with a trial license.
+    </div>
+  </div>
+
+  <script>
+    // Listen for message from main process
+    window.epm.onLicenseMessage((message) => {
+      document.getElementById('message').textContent = message;
+    });
+
+    const form = document.getElementById('licenseForm');
+    const licenseInput = document.getElementById('licenseKey');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Format license key as user types
+    licenseInput.addEventListener('input', (e) => {
+      let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      let formatted = '';
+      for (let i = 0; i < value.length && i < 16; i++) {
+        if (i > 0 && i % 4 === 0) formatted += '-';
+        formatted += value[i];
+      }
+      e.target.value = formatted;
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const licenseKey = licenseInput.value.replace(/-/g, '');
+
+      if (licenseKey.length !== 16) {
+        alert('License key must be 16 characters');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Activating...';
+
+      window.epm.submitLicense(licenseKey);
+    });
+  </script>
+</body>
+</html>

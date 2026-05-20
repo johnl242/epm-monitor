@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>EPM Monitor - Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-badge.active {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .status-badge.paused {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 14px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .checkbox-label {
+      cursor: pointer;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-success {
+      background: #22c55e;
+      color: #fff;
+    }
+
+    .btn-success:hover {
+      background: #16a34a;
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .info-item {
+      background: #0f172a;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .info-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+
+    .password-form {
+      display: none;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #334155;
+    }
+
+    .password-form.show {
+      display: block;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .modal h3 {
+      margin-bottom: 20px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .modal-actions .btn {
+      flex: 1;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .alert.show {
+      display: block;
+    }
+
+    .alert-error {
+      background: rgba(220, 38, 38, 0.2);
+      border: 1px solid rgba(220, 38, 38, 0.4);
+      color: #fca5a5;
+    }
+
+    .alert-success {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #86efac;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        <span style="color: #22c55e;">E</span> EPM Monitor Settings
+      </h1>
+      <span class="status-badge" id="statusBadge">Loading...</span>
+    </div>
+
+    <div class="alert" id="alert"></div>
+
+    <!-- License Information -->
+    <div class="card">
+      <div class="card-title">License Information</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">License Key</div>
+          <div class="info-value" id="licenseKey">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Tier</div>
+          <div class="info-value" id="licenseTier">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Seats</div>
+          <div class="info-value" id="licenseSeats">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Expires</div>
+          <div class="info-value" id="licenseExpiry">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Computer Information -->
+    <div class="card">
+      <div class="card-title">Computer Information</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Computer ID</div>
+          <div class="info-value" id="computerId" style="font-size: 12px;">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Status</div>
+          <div class="info-value" id="computerStatus">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monitoring Settings -->
+    <div class="card">
+      <div class="card-title">Monitoring Settings</div>
+
+      <div class="form-group">
+        <label>Idle Threshold (seconds)</label>
+        <input type="number" id="idleThreshold" min="60" max="3600" value="300">
+        <p class="hint">Time of inactivity before marking as idle (60-3600 seconds)</p>
+      </div>
+
+      <div class="form-group">
+        <label>Sync Interval (minutes)</label>
+        <input type="number" id="syncInterval" min="1" max="60" value="5">
+        <p class="hint">How often to sync data to server (1-60 minutes)</p>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-group">
+          <input type="checkbox" id="autoStart">
+          <label class="checkbox-label" for="autoStart">Start with Windows</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-group">
+          <input type="checkbox" id="showNotifications">
+          <label class="checkbox-label" for="showNotifications">Show Notifications</label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+    </div>
+
+    <!-- Security -->
+    <div class="card">
+      <div class="card-title">Security</div>
+
+      <div class="form-group">
+        <button class="btn btn-primary" id="changePasswordBtn">Change Password</button>
+      </div>
+
+      <div class="password-form" id="passwordForm">
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" id="currentPassword">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="newPassword">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" id="confirmNewPassword">
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="savePasswordBtn">Update Password</button>
+          <button class="btn" id="cancelPasswordBtn" style="background: #475569;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+      <div class="card-title">Actions</div>
+
+      <div class="btn-group">
+        <button class="btn btn-success" id="pauseResumeBtn">Pause Monitoring</button>
+        <button class="btn btn-primary" id="syncBtn">Sync Now</button>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: #64748b; margin-top: 30px; font-size: 12px;">
+      EPM Commercial v1.0.0<br>
+      Employee Productivity Monitor
+    </p>
+  </div>
+
+  <!-- Password Verification Modal -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal">
+      <h3>Enter Password</h3>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="modalPassword" placeholder="Enter your password">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="modalCancelBtn" style="background: #475569;">Cancel</button>
+        <button class="btn btn-primary" id="modalConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let status = null;
+    let isPaused = false;
+    let pendingAction = null;
+
+    // Load initial data
+    async function loadData() {
+      try {
+        status = await window.epm.getStatus();
+        isPaused = status.isPaused;
+
+        // Update status badge
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = status.isPaused ? 'Paused' : 'Active';
+        badge.className = 'status-badge ' + (status.isPaused ? 'paused' : 'active');
+
+        // Update license info
+        if (status.licenseInfo) {
+          document.getElementById('licenseKey').textContent = status.licenseInfo.key || 'N/A';
+          document.getElementById('licenseTier').textContent = (status.licenseInfo.tier || 'N/A').toUpperCase();
+          document.getElementById('licenseSeats').textContent = `${status.licenseInfo.seatsUsed || 0} / ${status.licenseInfo.seats || 0}`;
+          document.getElementById('licenseExpiry').textContent = status.licenseInfo.expiresAt ? new Date(status.licenseInfo.expiresAt).toLocaleDateString() : 'N/A';
+        }
+
+        // Update computer info
+        document.getElementById('computerId').textContent = status.computerId || 'N/A';
+        document.getElementById('computerStatus').textContent = status.isLicensed ? 'Licensed' : 'Unlicensed';
+
+        // Load config
+        const config = await window.epm.getConfig();
+        document.getElementById('idleThreshold').value = config.idleThreshold || 300;
+        document.getElementById('syncInterval').value = config.syncInterval || 5;
+        document.getElementById('autoStart').checked = config.autoStart !== false;
+        document.getElementById('showNotifications').checked = config.showNotifications !== false;
+
+        // Update pause/resume button
+        updatePauseButton();
+
+      } catch (error) {
+        showAlert(error.message, 'error');
+      }
+    }
+
+    function updatePauseButton() {
+      const btn = document.getElementById('pauseResumeBtn');
+      btn.textContent = isPaused ? 'Resume Monitoring' : 'Pause Monitoring';
+      btn.className = isPaused ? 'btn btn-success' : 'btn btn-danger';
+    }
+
+    function showAlert(message, type = 'error') {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.className = 'alert show alert-' + type;
+      setTimeout(() => alert.classList.remove('show'), 5000);
+    }
+
+    // Save settings
+    document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+      try {
+        const config = {
+          idleThreshold: parseInt(document.getElementById('idleThreshold').value),
+          syncInterval: parseInt(document.getElementById('syncInterval').value),
+          autoStart: document.getElementById('autoStart').checked,
+          showNotifications: document.getElementById('showNotifications').checked
+        };
+
+        await window.epm.updateConfig(config);
+        showAlert('Settings saved successfully', 'success');
+      } catch (error) {
+        showAlert(error.message, 'error');
+      }
+    });
+
+    // Pause/Resume
+    document.getElementById('pauseResumeBtn').addEventListener('click', async () => {
+      try {
+        if (isPaused) {
+          await window.epm.resumeMonitoring();
+        } else {
+          await window.epm.pauseMonitoring();
+        }
+        isPaused = !isPaused;
+        updatePauseButton();
+
+        // Update badge
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = isPaused ? 'Paused' : 'Active';
+        badge.className = 'status-badge ' + (isPaused ? 'paused' : 'active');
+
+        showAlert(isPaused ? 'Monitoring paused' : 'Monitoring resumed', 'success');
+      } catch (error) {
+        showAlert(error.message, 'error');
+      }
+    });
+
+    // Sync
+    document.getElementById('syncBtn').addEventListener('click', async () => {
+      try {
+        const btn = document.getElementById('syncBtn');
+        btn.disabled = true;
+        btn.textContent = 'Syncing...';
+
+        const result = await window.epm.syncData();
+
+        btn.disabled = false;
+        btn.textContent = 'Sync Now';
+
+        showAlert(result.message, 'success');
+      } catch (error) {
+        showAlert(error.message, 'error');
+        document.getElementById('syncBtn').disabled = false;
+        document.getElementById('syncBtn').textContent = 'Sync Now';
+      }
+    });
+
+    // Change password
+    document.getElementById('changePasswordBtn').addEventListener('click', () => {
+      document.getElementById('passwordForm').classList.add('show');
+    });
+
+    document.getElementById('cancelPasswordBtn').addEventListener('click', () => {
+      document.getElementById('passwordForm').classList.remove('show');
+      document.getElementById('currentPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmNewPassword').value = '';
+    });
+
+    document.getElementById('savePasswordBtn').addEventListener('click', async () => {
+      const current = document.getElementById('currentPassword').value;
+      const newPass = document.getElementById('newPassword').value;
+      const confirm = document.getElementById('confirmNewPassword').value;
+
+      if (!current || !newPass || !confirm) {
+        showAlert('Please fill in all fields', 'error');
+        return;
+      }
+
+      if (newPass !== confirm) {
+        showAlert('New passwords do not match', 'error');
+        return;
+      }
+
+      if (newPass.length < 8) {
+        showAlert('New password must be at least 8 characters', 'error');
+        return;
+      }
+
+      try {
+        await window.epm.changePassword(current, newPass);
+        showAlert('Password changed successfully', 'success');
+        document.getElementById('cancelPasswordBtn').click();
+      } catch (error) {
+        showAlert(error.message, 'error');
+      }
+    });
+
+    // Initialize
+    loadData();
+  </script>
+</body>
+</html>

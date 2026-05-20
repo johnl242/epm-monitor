@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.local
+.env*.local
+*.env
+
+# Desktop build artifacts
+desktop/dist/
+desktop/node_modules/
+desktop/--store-dir/
+
+# Misc
+.DS_Store
+*.log
+--store-dir/
+downloads/
+graphify-out/
+user_input_files/

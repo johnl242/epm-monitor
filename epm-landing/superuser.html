@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate"/>
+  <title>EPM Monitor — Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/bCrypt.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; color: #9ca3af; transition: all .15s;
+      user-select: none;
+    }
+    .nav-item:hover { background: #1f2937; color: #fff; }
+    .nav-item.active { background: #005f9e; color: #fff; font-weight: 600; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .kpi-card { background: #fff; border-radius: 12px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-green  { background: #dcfce7; color: #15803d; }
+    .badge-amber  { background: #fef3c7; color: #b45309; }
+    .badge-red    { background: #fee2e2; color: #dc2626; }
+    .badge-gray   { background: #f3f4f6; color: #6b7280; }
+    .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+    .badge-purple { background: #ede9fe; color: #7c3aed; }
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th { background: #f8fafc; color: #64748b; font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    .tbl td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tr:hover td { background: #f8fafc; }
+    .btn-primary { background: #005f9e; color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: background .15s; }
+    .btn-primary:hover { background: #004a7c; }
+    .btn-ghost { background: transparent; color: #64748b; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; border: 1px solid #e2e8f0; cursor: pointer; transition: all .15s; }
+    .btn-ghost:hover { background: #f1f5f9; color: #1e293b; }
+    .btn-danger { background: #dc2626; color: #fff; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+    .btn-danger:hover { background: #b91c1c; }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+    .form-input { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #1e293b; outline: none; transition: border-color .15s; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+    .form-input:focus { border-color: #005f9e; box-shadow: 0 0 0 3px rgba(0,95,158,.1); }
+    .form-select { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #1e293b; outline: none; background: #fff; cursor: pointer; font-family: 'Inter', sans-serif; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+    .modal-box { background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,.2); max-height: 90vh; overflow-y: auto; width: 100%; max-width: 520px; padding: 2rem; }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,.2); animation: slideUp .25s ease; }
+    .toast.success { background: #15803d; }
+    .toast.error   { background: #dc2626; }
+    @keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+    .sparkbar { display: inline-block; height: 28px; border-radius: 3px; background: #005f9e; opacity: .8; transition: all .15s; min-width: 3px; }
+    .sparkbar:hover { opacity: 1; }
+    .key-badge { font-family: monospace; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; font-size: 12px; color: #334155; cursor: pointer; }
+    .key-badge:hover { background: #e2e8f0; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-50">
+  <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full spin mb-4"></div>
+  <p class="text-gray-500 text-sm">Verifying access…</p>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="hidden fixed inset-0 flex items-center justify-center" style="background: linear-gradient(135deg,#0a1628 0%,#005f9e 60%,#0d7bc4 100%)">
+  <div class="bg-white rounded-2xl shadow-2xl p-10 w-96">
+    <div class="text-center mb-8">
+      <div class="text-4xl mb-3">🔐</div>
+      <h1 class="text-2xl font-black text-gray-900">EPM Monitor</h1>
+      <p class="text-blue-700 font-semibold text-sm mt-1">Super Admin Panel</p>
+      <p class="text-xs text-gray-400 mt-3">Restricted — authorised personnel only</p>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <label class="form-label">Email</label>
+        <input type="email" id="loginEmail" class="form-input" placeholder="admin@epm-monitor.com" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div>
+        <label class="form-label">Password</label>
+        <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <button onclick="doLogin()" id="loginBtn" class="btn-primary w-full py-3 mt-2" style="width:100%">Sign In</button>
+      <p id="loginError" class="text-red-500 text-xs text-center mt-2 hidden"></p>
+    </div>
+    <div class="mt-6 text-center">
+      <a href="index.html" class="text-xs text-gray-400 hover:text-gray-600 transition-colors">← Back to landing page</a>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="hidden flex h-screen overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="w-56 bg-gray-900 flex flex-col flex-shrink-0 select-none">
+    <div class="p-4 border-b border-gray-800">
+      <div class="flex items-center gap-2">
+        <span class="font-black text-white text-lg italic">EPM</span>
+        <span class="bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">Monitor</span>
+      </div>
+      <p class="text-blue-400 text-xs font-semibold mt-0.5">ADMIN PANEL</p>
+    </div>
+    <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      <div class="nav-item active" onclick="navTo('dashboard')">📊 <span>Dashboard</span></div>
+      <div class="nav-item" onclick="navTo('sales')">📈 <span>Sales Report</span></div>
+      <div class="nav-item" onclick="navTo('licenses')">🔑 <span>Licenses</span></div>
+      <div class="nav-item" onclick="navTo('companies')">🏢 <span>Companies</span></div>
+      <div class="nav-item" onclick="navTo('computers')">🖥️ <span>Computers</span></div>
+      <div class="border-t border-gray-800 my-2"></div>
+      <div class="nav-item" onclick="navTo('settings')">⚙️ <span>Settings</span></div>
+      <div class="nav-item" onclick="navTo('admins')">👥 <span>Admin Users</span></div>
+    </nav>
+    <div class="p-4 border-t border-gray-800">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm" id="sidebarAvatar">A</div>
+        <div class="flex-1 min-w-0">
+          <p id="sidebarName" class="text-xs font-semibold text-white truncate">Admin</p>
+          <p id="sidebarEmail" class="text-xs text-gray-500 truncate"></p>
+        </div>
+      </div>
+      <button onclick="doLogout()" class="text-xs text-gray-500 hover:text-red-400 transition w-full text-left">↪ Sign out</button>
+    </div>
+  </aside>
+
+  <!-- CONTENT AREA -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
+      <h2 id="pageTitle" class="text-base font-bold text-gray-800">Dashboard</h2>
+      <div class="flex items-center gap-4">
+        <span id="headerDate" class="text-xs text-gray-400 font-mono"></span>
+        <button onclick="refreshAll()" class="text-xs text-blue-600 hover:text-blue-800 font-semibold border border-blue-200 px-3 py-1.5 rounded-lg transition">↻ Refresh</button>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
+
+      <!-- DASHBOARD -->
+      <div id="sec-dashboard" class="section active space-y-6">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="kpiRow">
+          <div class="kpi-card"><div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Total Companies</div><div class="text-2xl font-black text-gray-900" id="kpi-companies">—</div></div>
+          <div class="kpi-card"><div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Active Licenses</div><div class="text-2xl font-black text-gray-900" id="kpi-licenses">—</div></div>
+          <div class="kpi-card"><div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Registered Seats</div><div class="text-2xl font-black text-gray-900" id="kpi-seats">—</div></div>
+          <div class="kpi-card"><div class="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">MRR (est.)</div><div class="text-2xl font-black text-gray-900" id="kpi-mrr">—</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-white rounded-xl p-5 shadow-sm">
+            <h3 class="font-bold text-gray-700 text-sm mb-4">📅 Licenses Issued — Last 30 Days</h3>
+            <div id="sparklineChart" class="flex items-end gap-1 h-28"></div>
+          </div>
+          <div class="bg-white rounded-xl p-5 shadow-sm">
+            <h3 class="font-bold text-gray-700 text-sm mb-4">🔑 Plan Distribution</h3>
+            <div id="planDistChart" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-bold text-gray-700 text-sm">⏰ Expiring Soon (Next 45 Days)</h3>
+            <span id="renewalCount" class="badge badge-amber"></span>
+          </div>
+          <div id="renewalTable" class="overflow-x-auto"></div>
+        </div>
+      </div>
+
+      <!-- SALES REPORT -->
+      <div id="sec-sales" class="section space-y-4">
+        <div class="bg-white rounded-xl p-5 shadow-sm">
+          <div class="flex flex-wrap items-center gap-2 mb-5">
+            <button class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white font-semibold hover:bg-blue-50 hover:border-blue-300 transition" onclick="loadPurchases(30)">30 Days</button>
+            <button class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white font-semibold hover:bg-blue-50 hover:border-blue-300 transition" onclick="loadPurchases(7)">7 Days</button>
+            <button class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white font-semibold hover:bg-blue-50 hover:border-blue-300 transition" onclick="loadPurchases(1)">Today</button>
+            <button class="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-white font-semibold hover:bg-blue-50 hover:border-blue-300 transition" onclick="loadPurchases(365)">This Year</button>
+            <div class="flex-1"></div>
+            <button onclick="exportPurchasesCSV()" class="btn-ghost text-xs">⬇ Export CSV</button>
+          </div>
+          <div id="salesTableWrap" class="overflow-x-auto"></div>
+        </div>
+      </div>
+
+      <!-- LICENSES -->
+      <div id="sec-licenses" class="section space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <input type="text" id="licenseSearch" class="form-input" style="width:220px" placeholder="Search license key or company…" oninput="filterLicenses()"/>
+          </div>
+          <button onclick="openIssueLicenseModal()" class="btn-primary">+ Issue License</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div id="licenseTableWrap" class="overflow-x-auto"></div>
+        </div>
+      </div>
+
+      <!-- COMPANIES -->
+      <div id="sec-companies" class="section space-y-4">
+        <div class="flex items-center justify-between">
+          <input type="text" id="companySearch" class="form-input" style="width:220px" placeholder="Search companies…" oninput="filterCompanies()"/>
+          <button onclick="openCreateCompanyModal()" class="btn-primary">+ Add Company</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div id="companyTableWrap" class="overflow-x-auto"></div>
+        </div>
+      </div>
+
+      <!-- COMPUTERS -->
+      <div id="sec-computers" class="section space-y-4">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="font-bold text-gray-700 text-sm">🖥️ Registered Computers</h3>
+          </div>
+          <div id="computerTableWrap" class="overflow-x-auto"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="sec-settings" class="section space-y-6">
+        <div class="bg-white rounded-xl p-6 shadow-sm max-w-lg">
+          <h3 class="font-bold text-gray-800 text-sm mb-4">Payment Gateway Configuration</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="form-label">Stripe Publishable Key</label>
+              <input type="text" id="cfg-stripe-pk" class="form-input" placeholder="pk_live_..."/>
+            </div>
+            <div>
+              <label class="form-label">Stripe Secret Key</label>
+              <input type="password" id="cfg-stripe-sk" class="form-input" placeholder="sk_live_..."/>
+            </div>
+            <div class="border-t pt-4">
+              <label class="form-label">Razorpay Key ID</label>
+              <input type="text" id="cfg-rzp-key" class="form-input" placeholder="rzp_live_..."/>
+            </div>
+            <div>
+              <label class="form-label">Razorpay Key Secret</label>
+              <input type="password" id="cfg-rzp-secret" class="form-input" placeholder="your_razorpay_secret"/>
+            </div>
+            <button onclick="saveSettings()" class="btn-primary">Save Settings</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-sm max-w-lg">
+          <h3 class="font-bold text-gray-800 text-sm mb-4">Download Release Management</h3>
+          <p class="text-xs text-gray-500 mb-4">Upload a new Windows installer URL to make it available on the landing page.</p>
+          <div class="space-y-3">
+            <div>
+              <label class="form-label">Version</label>
+              <input type="text" id="cfg-version" class="form-input" placeholder="1.0.1"/>
+            </div>
+            <div>
+              <label class="form-label">Download URL</label>
+              <input type="text" id="cfg-dl-url" class="form-input" placeholder="https://..."/>
+            </div>
+            <button onclick="publishRelease()" class="btn-primary">Publish Release</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN USERS -->
+      <div id="sec-admins" class="section space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-gray-700 text-sm">Admin Users</h3>
+          <button onclick="openAddAdminModal()" class="btn-primary">+ Add Admin</button>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div id="adminTableWrap" class="overflow-x-auto"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: Issue License -->
+<div id="issueLicenseModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold text-gray-900">Issue New License</h3>
+      <button onclick="closeModal('issueLicenseModal')" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="form-label">Company</label>
+        <select id="il-company" class="form-select">
+          <option value="">— select company —</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Plan</label>
+        <select id="il-plan" class="form-select" onchange="updateLicensePreview()">
+          <option value="starter">Starter — $5/seat/mo (max 10 seats)</option>
+          <option value="professional" selected>Professional — $10/seat/mo (max 100 seats)</option>
+          <option value="enterprise">Enterprise — custom</option>
+          <option value="trial">Trial — 14 days, 3 seats</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Seats</label>
+          <input type="number" id="il-seats" class="form-input" value="5" min="1" max="1000" oninput="updateLicensePreview()"/>
+        </div>
+        <div>
+          <label class="form-label">Valid (months)</label>
+          <input type="number" id="il-months" class="form-input" value="12" min="1" max="60" oninput="updateLicensePreview()"/>
+        </div>
+      </div>
+      <div id="license-preview" class="bg-slate-50 rounded-xl p-4 text-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-gray-500">License Key Preview</span>
+          <span class="font-mono text-brand font-bold text-xs" id="preview-key">P202605XXXXXXXX</span>
+        </div>
+        <div class="flex justify-between text-gray-600"><span>Expires</span><span id="preview-expiry">—</span></div>
+        <div class="flex justify-between text-gray-600 mt-1"><span>Value</span><span id="preview-value">—</span></div>
+      </div>
+      <div id="il-error" class="text-red-500 text-xs hidden"></div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="closeModal('issueLicenseModal')" class="btn-ghost flex-1">Cancel</button>
+        <button onclick="issueLicense()" class="btn-primary flex-1">Issue License</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Create Company -->
+<div id="createCompanyModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold text-gray-900">Add Company</h3>
+      <button onclick="closeModal('createCompanyModal')" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="form-label">Company Name</label>
+        <input type="text" id="cc-name" class="form-input" placeholder="Acme Corp"/>
+      </div>
+      <div>
+        <label class="form-label">Contact Email</label>
+        <input type="email" id="cc-email" class="form-input" placeholder="admin@acme.com"/>
+      </div>
+      <div>
+        <label class="form-label">Contact Phone</label>
+        <input type="text" id="cc-phone" class="form-input" placeholder="+91 9999999999"/>
+      </div>
+      <div id="cc-error" class="text-red-500 text-xs hidden"></div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="closeModal('createCompanyModal')" class="btn-ghost flex-1">Cancel</button>
+        <button onclick="createCompany()" class="btn-primary flex-1">Create Company</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Admin -->
+<div id="addAdminModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold text-gray-900">Add Admin User</h3>
+      <button onclick="closeModal('addAdminModal')" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="form-label">Name</label>
+        <input type="text" id="aa-name" class="form-input" placeholder="Admin Name"/>
+      </div>
+      <div>
+        <label class="form-label">Email</label>
+        <input type="email" id="aa-email" class="form-input" placeholder="admin@epm.com"/>
+      </div>
+      <div>
+        <label class="form-label">Password</label>
+        <input type="password" id="aa-password" class="form-input" placeholder="Min 8 characters"/>
+      </div>
+      <div id="aa-error" class="text-red-500 text-xs hidden"></div>
+      <div class="flex gap-3 pt-2">
+        <button onclick="closeModal('addAdminModal')" class="btn-ghost flex-1">Cancel</button>
+        <button onclick="addAdminUser()" class="btn-primary flex-1">Add Admin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Supabase init ──────────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://fcfezhoaxqroubphzzfz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_vbBJaY8qXSyoNCwYLhn93g_qj2C_De6';
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+
+  let currentAdmin = null;
+  let allLicenses = [];
+  let allCompanies = [];
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', async () => {
+    document.getElementById('headerDate').textContent = new Date().toLocaleString();
+    const saved = sessionStorage.getItem('epm_admin');
+    if (saved) {
+      currentAdmin = JSON.parse(saved);
+      showAdminPanel();
+    } else {
+      document.getElementById('loadingScreen').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+  });
+
+  async function doLogin() {
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const password = document.getElementById('loginPassword').value;
+    const btn = document.getElementById('loginBtn');
+    const errEl = document.getElementById('loginError');
+    errEl.classList.add('hidden');
+    if (!email || !password) { showLoginError('Email and password required'); return; }
+
+    btn.textContent = 'Signing in…';
+    btn.disabled = true;
+
+    try {
+      const { data, error } = await db.from('super_admins')
+        .select('*')
+        .eq('email', email)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) { showLoginError('Invalid credentials'); return; }
+
+      const match = await bcrypt.compare(password, data.password_hash);
+      if (!match) { showLoginError('Invalid credentials'); return; }
+
+      currentAdmin = { id: data.id, name: data.name, email: data.email };
+      sessionStorage.setItem('epm_admin', JSON.stringify(currentAdmin));
+      showAdminPanel();
+    } catch (e) {
+      showLoginError('Login failed: ' + e.message);
+    } finally {
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+    }
+  }
+
+  function showLoginError(msg) {
+    const el = document.getElementById('loginError');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function showAdminPanel() {
+    document.getElementById('loadingScreen').classList.add('hidden');
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('adminPanel').classList.remove('hidden');
+    document.getElementById('adminPanel').style.display = 'flex';
+    document.getElementById('sidebarName').textContent = currentAdmin.name || 'Admin';
+    document.getElementById('sidebarEmail').textContent = currentAdmin.email;
+    document.getElementById('sidebarAvatar').textContent = (currentAdmin.name || 'A')[0].toUpperCase();
+    refreshAll();
+  }
+
+  function doLogout() {
+    sessionStorage.removeItem('epm_admin');
+    location.reload();
+  }
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+  const pageTitles = {
+    dashboard: 'Dashboard', sales: 'Sales Report', licenses: 'Licenses',
+    companies: 'Companies', computers: 'Computers', settings: 'Settings', admins: 'Admin Users'
+  };
+
+  function navTo(sec) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelector(`.nav-item[onclick="navTo('${sec}')"]`).classList.add('active');
+    document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+    document.getElementById('sec-' + sec).classList.add('active');
+    document.getElementById('pageTitle').textContent = pageTitles[sec] || sec;
+    if (sec === 'licenses') loadLicenses();
+    if (sec === 'companies') loadCompanies();
+    if (sec === 'computers') loadComputers();
+    if (sec === 'sales') loadPurchases(30);
+    if (sec === 'admins') loadAdmins();
+  }
+
+  function refreshAll() {
+    loadDashboard();
+    loadLicenses();
+    loadCompanies();
+  }
+
+  // ── Dashboard ──────────────────────────────────────────────────────────────
+  async function loadDashboard() {
+    try {
+      const [{ data: companies }, { data: licenses }, { data: computers }] = await Promise.all([
+        db.from('companies').select('id, status'),
+        db.from('licenses').select('id, seats, price_per_seat, expires_at, is_active, plan_id, created_at, companies(name)'),
+        db.from('computers').select('id')
+      ]);
+
+      const active = (licenses || []).filter(l => l.is_active);
+      const seats = active.reduce((s, l) => s + (l.seats || 0), 0);
+      const mrr = active.reduce((s, l) => s + ((l.seats || 0) * (l.price_per_seat || 0)), 0);
+
+      document.getElementById('kpi-companies').textContent = (companies || []).length;
+      document.getElementById('kpi-licenses').textContent = active.length;
+      document.getElementById('kpi-seats').textContent = seats;
+      document.getElementById('kpi-mrr').textContent = '$' + mrr.toLocaleString();
+
+      // Sparkline: licenses per day last 30 days
+      const days = {};
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        days[d.toISOString().slice(0, 10)] = 0;
+      }
+      (licenses || []).forEach(l => {
+        const d = (l.created_at || '').slice(0, 10);
+        if (days[d] !== undefined) days[d]++;
+      });
+      const vals = Object.values(days);
+      const maxV = Math.max(...vals, 1);
+      const sparkEl = document.getElementById('sparklineChart');
+      sparkEl.innerHTML = vals.map((v, i) => {
+        const h = Math.max(4, Math.round((v / maxV) * 112));
+        return `<div class="sparkbar" style="height:${h}px;flex:1" title="${Object.keys(days)[i]}: ${v}"></div>`;
+      }).join('');
+
+      // Plan distribution
+      const planMap = {};
+      (licenses || []).forEach(l => {
+        const p = l.plan_id || 'unknown';
+        planMap[p] = (planMap[p] || 0) + 1;
+      });
+      const planColors = { starter: '#64748b', professional: '#005f9e', enterprise: '#7c3aed', trial: '#d97706' };
+      const total = Object.values(planMap).reduce((s, v) => s + v, 0) || 1;
+      document.getElementById('planDistChart').innerHTML = Object.entries(planMap).map(([p, v]) => `
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full flex-shrink-0" style="background:${planColors[p]||'#94a3b8'}"></div>
+          <div class="flex-1 text-xs text-gray-600 capitalize">${p}</div>
+          <div class="w-20 h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div class="h-full rounded-full" style="width:${Math.round(v/total*100)}%;background:${planColors[p]||'#94a3b8'}"></div>
+          </div>
+          <div class="text-xs font-semibold text-gray-700 w-4 text-right">${v}</div>
+        </div>
+      `).join('') || '<p class="text-xs text-gray-400">No licenses yet</p>';
+
+      // Expiring soon
+      const soon = (licenses || []).filter(l => {
+        if (!l.expires_at || !l.is_active) return false;
+        const daysLeft = (new Date(l.expires_at) - new Date()) / 86400000;
+        return daysLeft >= 0 && daysLeft <= 45;
+      }).sort((a, b) => new Date(a.expires_at) - new Date(b.expires_at));
+      document.getElementById('renewalCount').textContent = soon.length + ' expiring';
+      document.getElementById('renewalTable').innerHTML = soon.length ? `
+        <table class="tbl">
+          <thead><tr><th>Company</th><th>Seats</th><th>Expires</th><th>Days Left</th></tr></thead>
+          <tbody>${soon.map(l => {
+            const days = Math.ceil((new Date(l.expires_at) - new Date()) / 86400000);
+            return `<tr>
+              <td>${l.companies?.name || '—'}</td>
+              <td>${l.seats}</td>
+              <td>${new Date(l.expires_at).toLocaleDateString()}</td>
+              <td><span class="badge ${days < 15 ? 'badge-red' : 'badge-amber'}">${days}d</span></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      ` : '<p class="p-5 text-sm text-gray-400">No licenses expiring in the next 45 days.</p>';
+
+    } catch (e) { showToast('Dashboard load failed: ' + e.message, 'error'); }
+  }
+
+  // ── Licenses ───────────────────────────────────────────────────────────────
+  async function loadLicenses() {
+    try {
+      const { data, error } = await db.from('licenses')
+        .select('*, companies(name)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      allLicenses = data || [];
+      renderLicenses(allLicenses);
+    } catch (e) { showToast('Failed to load licenses: ' + e.message, 'error'); }
+  }
+
+  function renderLicenses(list) {
+    document.getElementById('licenseTableWrap').innerHTML = list.length ? `
+      <table class="tbl">
+        <thead><tr><th>License Key</th><th>Company</th><th>Plan</th><th>Seats</th><th>Expires</th><th>Status</th></tr></thead>
+        <tbody>${list.map(l => {
+          const exp = l.expires_at ? new Date(l.expires_at).toLocaleDateString() : 'Never';
+          const days = l.expires_at ? Math.ceil((new Date(l.expires_at) - new Date()) / 86400000) : 9999;
+          const badge = !l.is_active ? 'badge-gray' : days < 0 ? 'badge-red' : days < 15 ? 'badge-amber' : 'badge-green';
+          const status = !l.is_active ? 'Inactive' : days < 0 ? 'Expired' : 'Active';
+          return `<tr>
+            <td><span class="key-badge" onclick="navigator.clipboard.writeText('${l.license_key}');showToast('Copied!','success')">${l.license_key}</span></td>
+            <td>${l.companies?.name || '—'}</td>
+            <td class="capitalize">${l.plan_id || '—'}</td>
+            <td>${l.seats}</td>
+            <td>${exp}</td>
+            <td><span class="badge ${badge}">${status}</span></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    ` : '<p class="p-5 text-sm text-gray-400">No licenses found.</p>';
+  }
+
+  function filterLicenses() {
+    const q = document.getElementById('licenseSearch').value.toLowerCase();
+    renderLicenses(allLicenses.filter(l =>
+      (l.license_key || '').toLowerCase().includes(q) ||
+      (l.companies?.name || '').toLowerCase().includes(q)
+    ));
+  }
+
+  // ── Companies ──────────────────────────────────────────────────────────────
+  async function loadCompanies() {
+    try {
+      const { data, error } = await db.from('companies')
+        .select('*, licenses(id, is_active, seats, plan_id)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      allCompanies = data || [];
+      renderCompanies(allCompanies);
+      // Populate company dropdown in issue license modal
+      const sel = document.getElementById('il-company');
+      sel.innerHTML = '<option value="">— select company —</option>' +
+        allCompanies.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    } catch (e) { showToast('Failed to load companies: ' + e.message, 'error'); }
+  }
+
+  function renderCompanies(list) {
+    document.getElementById('companyTableWrap').innerHTML = list.length ? `
+      <table class="tbl">
+        <thead><tr><th>Company</th><th>Email</th><th>Phone</th><th>Plan</th><th>Seats</th><th>Status</th></tr></thead>
+        <tbody>${list.map(c => {
+          const activeLic = (c.licenses || []).find(l => l.is_active);
+          return `<tr>
+            <td class="font-semibold">${c.name}</td>
+            <td>${c.contact_email || '—'}</td>
+            <td>${c.contact_phone || '—'}</td>
+            <td class="capitalize">${activeLic?.plan_id || '—'}</td>
+            <td>${activeLic?.seats || 0}</td>
+            <td><span class="badge ${c.status === 'active' ? 'badge-green' : 'badge-gray'}">${c.status || 'active'}</span></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    ` : '<p class="p-5 text-sm text-gray-400">No companies found.</p>';
+  }
+
+  function filterCompanies() {
+    const q = document.getElementById('companySearch').value.toLowerCase();
+    renderCompanies(allCompanies.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.contact_email || '').toLowerCase().includes(q)
+    ));
+  }
+
+  // ── Computers ──────────────────────────────────────────────────────────────
+  async function loadComputers() {
+    try {
+      const { data, error } = await db.from('computers')
+        .select('*, companies(name)')
+        .order('last_seen', { ascending: false });
+      if (error) throw error;
+      const list = data || [];
+      document.getElementById('computerTableWrap').innerHTML = list.length ? `
+        <table class="tbl">
+          <thead><tr><th>Computer ID</th><th>Hostname</th><th>Company</th><th>OS</th><th>Last Seen</th><th>Status</th></tr></thead>
+          <tbody>${list.map(c => {
+            const seen = c.last_seen ? new Date(c.last_seen).toLocaleString() : 'Never';
+            const online = c.last_seen && (Date.now() - new Date(c.last_seen)) < 10 * 60 * 1000;
+            return `<tr>
+              <td class="font-mono text-xs">${c.computer_id?.slice(0,12) || '—'}</td>
+              <td>${c.hostname || '—'}</td>
+              <td>${c.companies?.name || '—'}</td>
+              <td>${c.os || 'Windows'}</td>
+              <td class="text-xs text-gray-400">${seen}</td>
+              <td><span class="badge ${online ? 'badge-green' : 'badge-gray'}">${online ? 'Online' : 'Offline'}</span></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      ` : '<p class="p-5 text-sm text-gray-400">No computers registered yet.</p>';
+    } catch (e) { showToast('Failed to load computers: ' + e.message, 'error'); }
+  }
+
+  // ── Purchases / Sales ──────────────────────────────────────────────────────
+  async function loadPurchases(days) {
+    try {
+      const since = new Date(); since.setDate(since.getDate() - days);
+      const { data, error } = await db.from('purchases')
+        .select('*, companies(name)')
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const list = data || [];
+      const total = list.reduce((s, p) => s + (p.amount || 0), 0);
+      document.getElementById('salesTableWrap').innerHTML = list.length ? `
+        <table class="tbl">
+          <thead><tr><th>Date</th><th>Company</th><th>Plan</th><th>Seats</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
+          <tbody>${list.map(p => `<tr>
+            <td class="text-xs text-gray-400">${new Date(p.created_at).toLocaleDateString()}</td>
+            <td>${p.companies?.name || p.company_name || '—'}</td>
+            <td class="capitalize">${p.plan || '—'}</td>
+            <td>${p.seats || '—'}</td>
+            <td class="font-semibold">$${(p.amount || 0).toLocaleString()}</td>
+            <td>${p.payment_method || '—'}</td>
+            <td><span class="badge ${p.status === 'paid' ? 'badge-green' : p.status === 'pending' ? 'badge-amber' : 'badge-gray'}">${p.status || 'pending'}</span></td>
+          </tr>`).join('')}
+          </tbody>
+          <tfoot><tr>
+            <td colspan="4" class="font-bold">Total</td>
+            <td class="font-bold">$${total.toLocaleString()}</td>
+            <td colspan="2"></td>
+          </tr></tfoot>
+        </table>
+      ` : `<p class="p-5 text-sm text-gray-400">No purchases in the last ${days} days.</p>`;
+    } catch (e) { showToast('Failed to load sales: ' + e.message, 'error'); }
+  }
+
+  function exportPurchasesCSV() {
+    showToast('CSV export coming soon', '');
+  }
+
+  // ── Admins ─────────────────────────────────────────────────────────────────
+  async function loadAdmins() {
+    try {
+      const { data, error } = await db.from('super_admins').select('id, name, email, is_active, created_at').order('created_at');
+      if (error) throw error;
+      const list = data || [];
+      document.getElementById('adminTableWrap').innerHTML = list.length ? `
+        <table class="tbl">
+          <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Created</th></tr></thead>
+          <tbody>${list.map(a => `<tr>
+            <td class="font-semibold">${a.name}</td>
+            <td>${a.email}</td>
+            <td><span class="badge ${a.is_active ? 'badge-green' : 'badge-gray'}">${a.is_active ? 'Active' : 'Inactive'}</span></td>
+            <td class="text-xs text-gray-400">${new Date(a.created_at).toLocaleDateString()}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      ` : '<p class="p-5 text-sm text-gray-400">No admin users.</p>';
+    } catch (e) { showToast('Failed to load admins: ' + e.message, 'error'); }
+  }
+
+  // ── Issue License Modal ────────────────────────────────────────────────────
+  function openIssueLicenseModal() {
+    loadCompanies();
+    updateLicensePreview();
+    document.getElementById('il-error').classList.add('hidden');
+    document.getElementById('issueLicenseModal').classList.remove('hidden');
+  }
+
+  function updateLicensePreview() {
+    const plan = document.getElementById('il-plan')?.value || 'professional';
+    const seats = parseInt(document.getElementById('il-seats')?.value) || 5;
+    const months = parseInt(document.getElementById('il-months')?.value) || 12;
+    const prefix = { professional: 'P', starter: 'S', enterprise: 'E', trial: 'T' }[plan] || 'P';
+    const datePart = new Date().toISOString().slice(0, 7).replace('-', '');
+    document.getElementById('preview-key').textContent = `${prefix}${datePart}XXXXXXXX`;
+    const expiry = new Date(); expiry.setMonth(expiry.getMonth() + months);
+    document.getElementById('preview-expiry').textContent = expiry.toLocaleDateString();
+    const prices = { professional: 10, starter: 5, enterprise: 20, trial: 0 };
+    const value = seats * (prices[plan] || 0) * months;
+    document.getElementById('preview-value').textContent = value ? `$${value} total` : 'Trial';
+  }
+
+  async function issueLicense() {
+    const companyId = document.getElementById('il-company').value;
+    const plan = document.getElementById('il-plan').value;
+    const seats = parseInt(document.getElementById('il-seats').value);
+    const months = parseInt(document.getElementById('il-months').value);
+    const errEl = document.getElementById('il-error');
+    errEl.classList.add('hidden');
+
+    if (!companyId) { errEl.textContent = 'Select a company'; errEl.classList.remove('hidden'); return; }
+    if (!seats || seats < 1) { errEl.textContent = 'Enter valid seats'; errEl.classList.remove('hidden'); return; }
+
+    const prefix = { professional: 'P', starter: 'S', enterprise: 'E', trial: 'T' }[plan] || 'P';
+    const datePart = new Date().toISOString().slice(0, 7).replace('-', '');
+    const rand = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+      .map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    const licenseKey = `${prefix}${datePart}${rand}`;
+
+    const expiresAt = new Date(); expiresAt.setMonth(expiresAt.getMonth() + months);
+    const prices = { professional: 10, starter: 5, enterprise: 20, trial: 0 };
+
+    try {
+      const { error } = await db.from('licenses').insert({
+        company_id: companyId,
+        license_key: licenseKey,
+        plan_id: plan,
+        seats,
+        price_per_seat: prices[plan] || 0,
+        is_active: true,
+        starts_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString()
+      });
+      if (error) throw error;
+
+      // Record purchase
+      await db.from('purchases').insert({
+        company_id: companyId,
+        plan: plan,
+        seats,
+        amount: seats * (prices[plan] || 0) * months,
+        status: 'paid',
+        payment_method: 'manual'
+      });
+
+      closeModal('issueLicenseModal');
+      showToast(`License issued: ${licenseKey}`, 'success');
+      loadLicenses();
+      loadDashboard();
+    } catch (e) {
+      errEl.textContent = 'Failed: ' + e.message;
+      errEl.classList.remove('hidden');
+    }
+  }
+
+  // ── Create Company ─────────────────────────────────────────────────────────
+  function openCreateCompanyModal() {
+    document.getElementById('cc-name').value = '';
+    document.getElementById('cc-email').value = '';
+    document.getElementById('cc-phone').value = '';
+    document.getElementById('cc-error').classList.add('hidden');
+    document.getElementById('createCompanyModal').classList.remove('hidden');
+  }
+
+  async function createCompany() {
+    const name = document.getElementById('cc-name').value.trim();
+    const email = document.getElementById('cc-email').value.trim();
+    const phone = document.getElementById('cc-phone').value.trim();
+    const errEl = document.getElementById('cc-error');
+    if (!name || !email) { errEl.textContent = 'Name and email are required'; errEl.classList.remove('hidden'); return; }
+    try {
+      const { error } = await db.from('companies').insert({ name, contact_email: email, contact_phone: phone, status: 'active' });
+      if (error) throw error;
+      closeModal('createCompanyModal');
+      showToast('Company created', 'success');
+      loadCompanies();
+    } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
+  }
+
+  // ── Add Admin ──────────────────────────────────────────────────────────────
+  function openAddAdminModal() {
+    document.getElementById('aa-name').value = '';
+    document.getElementById('aa-email').value = '';
+    document.getElementById('aa-password').value = '';
+    document.getElementById('aa-error').classList.add('hidden');
+    document.getElementById('addAdminModal').classList.remove('hidden');
+  }
+
+  async function addAdminUser() {
+    const name = document.getElementById('aa-name').value.trim();
+    const email = document.getElementById('aa-email').value.trim().toLowerCase();
+    const password = document.getElementById('aa-password').value;
+    const errEl = document.getElementById('aa-error');
+    if (!name || !email || password.length < 8) {
+      errEl.textContent = 'All fields required. Password min 8 chars.';
+      errEl.classList.remove('hidden'); return;
+    }
+    try {
+      const hash = await bcrypt.hash(password, 12);
+      const { error } = await db.from('super_admins').insert({ name, email, password_hash: hash, is_active: true });
+      if (error) throw error;
+      closeModal('addAdminModal');
+      showToast('Admin user added', 'success');
+      loadAdmins();
+    } catch (e) { errEl.textContent = e.message; errEl.classList.remove('hidden'); }
+  }
+
+  // ── Settings ───────────────────────────────────────────────────────────────
+  async function saveSettings() {
+    const settings = {
+      stripe_pk: document.getElementById('cfg-stripe-pk').value.trim(),
+      stripe_sk: document.getElementById('cfg-stripe-sk').value.trim(),
+      razorpay_key: document.getElementById('cfg-rzp-key').value.trim(),
+      razorpay_secret: document.getElementById('cfg-rzp-secret').value.trim(),
+    };
+    try {
+      for (const [k, v] of Object.entries(settings)) {
+        if (!v) continue;
+        await db.from('app_settings').upsert({ key: k, value: v }, { onConflict: 'key' });
+      }
+      showToast('Settings saved', 'success');
+    } catch (e) { showToast('Save failed: ' + e.message, 'error'); }
+  }
+
+  async function publishRelease() {
+    const version = document.getElementById('cfg-version').value.trim();
+    const url = document.getElementById('cfg-dl-url').value.trim();
+    if (!version || !url) { showToast('Version and URL required', 'error'); return; }
+    try {
+      const { error } = await db.from('download_releases').insert({ platform: 'windows', version, download_url: url });
+      if (error) throw error;
+      showToast('Release published: v' + version, 'success');
+      document.getElementById('cfg-version').value = '';
+      document.getElementById('cfg-dl-url').value = '';
+    } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+  }
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+  function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast' + (type ? ` ${type}` : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+</script>
+</body>
+</html>

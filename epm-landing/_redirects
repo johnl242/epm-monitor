@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects
+/admin  /superuser.html  302
+/login  /superuser.html  302
+/*      /index.html       200

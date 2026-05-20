@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EPM Monitor — Employee Productivity Monitor</title>
+  <meta name="description" content="Track employee productivity, monitor app usage, capture screenshots, and generate detailed reports. Per-seat licensing with instant cloud sync."/>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json"/>
+  <meta name="theme-color" content="#005f9e"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="EPM Monitor"/>
+  <link rel="apple-touch-icon" href="/icons/icon-192.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png"/>
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png"/>
+
+  <!-- OG / Social -->
+  <meta property="og:title" content="EPM Monitor — Employee Productivity Monitor"/>
+  <meta property="og:description" content="Silent background agent tracks app usage, idle time, and productivity. Cloud-synced reports. Per-seat licensing."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:image" content="/icons/icon-512.png"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#005f9e',
+            brandDark: '#004a7c',
+            accent: '#f59e0b',
+            accentDark: '#d97706',
+            navy: '#0a1628'
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --brand: #005f9e;
+      --accent: #f59e0b;
+      --navy: #0a1628;
+      --md3-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --sh-1: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+      --sh-2: 0 4px 16px rgba(0,0,0,.1), 0 2px 6px rgba(0,0,0,.07);
+      --sh-feature: 0 8px 32px rgba(0,95,158,.18), 0 2px 8px rgba(0,0,0,.06);
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
+
+    /* Navbar */
+    #topnav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(10, 22, 40, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      transition: background 0.3s;
+    }
+
+    /* Hero */
+    .hero-bg {
+      background: linear-gradient(135deg, #0a1628 0%, #0f2341 35%, #005f9e 80%, #0d7bc4 100%);
+    }
+
+    /* Animations */
+    @keyframes floatA { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-18px) rotate(4deg)} }
+    @keyframes floatB { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-14px) rotate(-3deg)} }
+    @keyframes floatC { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-20px) rotate(5deg)} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    .pulse-dot { animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+
+    /* Marquee */
+    .marquee-wrap { overflow: hidden; }
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee 32s linear infinite;
+    }
+    @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+    .marquee-wrap:hover .marquee-track { animation-play-state: paused; }
+
+    /* Scroll reveal */
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    [data-reveal].revealed { opacity: 1; transform: translateY(0); }
+
+    /* Feature cards */
+    .feature-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 1.75rem;
+      box-shadow: var(--sh-1);
+      transition: box-shadow 0.38s var(--md3-spring), transform 0.38s var(--md3-spring);
+      position: relative; overflow: hidden;
+    }
+    .feature-card::after {
+      content: ''; position: absolute; inset: 0;
+      border-radius: inherit; background: #005f9e;
+      opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    }
+    .feature-card:hover::after { opacity: 0.03; }
+    .feature-card:hover { box-shadow: var(--sh-feature); transform: translateY(-6px) scale(1.02); }
+
+    /* Price cards */
+    .price-card {
+      display: flex; flex-direction: column;
+      border-radius: 24px; padding: 2rem 1.75rem;
+      background: #fff; box-shadow: var(--sh-1);
+      transition: box-shadow 0.38s var(--md3-spring), transform 0.38s var(--md3-spring);
+    }
+    .price-card:hover { box-shadow: var(--sh-feature); transform: translateY(-7px) scale(1.015); }
+    .price-card.featured {
+      background: linear-gradient(145deg, #005f9e 0%, #004a7c 60%, #003560 100%);
+      box-shadow: 0 12px 40px rgba(0,95,158,0.42);
+    }
+    .price-card.featured:hover { box-shadow: 0 20px 56px rgba(0,95,158,0.55); transform: translateY(-9px) scale(1.02); }
+
+    /* Buy modal */
+    #buy-overlay {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(10,22,40,0.75);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    #buy-overlay.open { opacity: 1; pointer-events: all; }
+    #buy-modal {
+      background: #fff; border-radius: 1.5rem; max-width: 460px; width: 100%;
+      padding: 2rem; box-shadow: 0 24px 80px rgba(0,0,0,.35);
+      transform: translateY(20px) scale(0.96);
+      transition: transform 0.3s ease;
+    }
+    #buy-overlay.open #buy-modal { transform: translateY(0) scale(1); }
+    .modal-input {
+      width: 100%; border: 1.5px solid #e2e8f0; border-radius: 0.75rem;
+      padding: 0.75rem 1rem; font-size: 0.95rem; outline: none;
+      transition: border-color 0.18s, box-shadow 0.18s; font-family: 'Inter', sans-serif;
+    }
+    .modal-input:focus { border-color: #005f9e; box-shadow: 0 0 0 3px rgba(0,95,158,0.12); }
+
+    /* Download button */
+    .dl-btn {
+      display: inline-flex; align-items: center; gap: 0.75rem;
+      padding: 1rem 2rem; border-radius: 0.875rem;
+      font-weight: 700; font-size: 1rem;
+      transition: transform 0.18s, box-shadow 0.18s;
+      text-decoration: none; cursor: pointer; border: none;
+    }
+    .dl-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,.22); }
+
+    /* Payment method toggle */
+    .pay-method {
+      border: 2px solid #e2e8f0; border-radius: 0.875rem;
+      padding: 0.875rem 1.25rem; cursor: pointer;
+      transition: all 0.2s; display: flex; align-items: center; gap: 0.75rem;
+    }
+    .pay-method.selected { border-color: #005f9e; background: #eff6ff; }
+    .pay-method:hover:not(.selected) { border-color: #94a3b8; background: #f8fafc; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1e293b; color: #fff; padding: 12px 20px;
+      border-radius: 10px; font-size: 13px; font-weight: 500;
+      z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,.2);
+      animation: slideUp 0.25s ease;
+    }
+    .toast.success { background: #15803d; }
+    .toast.error { background: #dc2626; }
+
+    /* Mobile menu */
+    #mobile-menu { display: none; }
+    #mobile-menu.open { display: block; }
+
+    /* Pay banner */
+    #pay-banner {
+      position: fixed; top: 64px; left: 0; right: 0; z-index: 8999;
+      display: none; align-items: center; justify-content: center;
+      gap: 1rem; padding: 0.75rem 1.5rem;
+      font-weight: 500; font-size: 0.9rem;
+    }
+    #pay-banner.success { display: flex; background: #dcfce7; color: #15803d; border-bottom: 1px solid #86efac; }
+    #pay-banner.cancelled { display: flex; background: #fef3c7; color: #92400e; border-bottom: 1px solid #fcd34d; }
+  </style>
+</head>
+<body class="bg-white text-slate-800 antialiased">
+
+<!-- PAY BANNER -->
+<div id="pay-banner">
+  <span id="pay-text"></span>
+  <button onclick="this.parentElement.style.display='none'" class="ml-2 font-bold text-lg opacity-60 hover:opacity-100">✕</button>
+</div>
+
+<!-- STICKY NAVBAR -->
+<nav id="topnav" class="h-16">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
+    <a href="/" class="flex flex-col justify-center gap-0 leading-none shrink-0">
+      <div class="flex items-center gap-2">
+        <span class="text-white font-black italic text-xl tracking-tight">EPM</span>
+        <span class="bg-blue-400 text-white text-xs font-bold px-2 py-0.5 rounded-full">Monitor</span>
+      </div>
+      <span style="font-size:9px;letter-spacing:0.18em;color:#f59e0b;font-weight:600;margin-top:2px;">powered by REEV</span>
+    </a>
+
+    <div class="hidden md:flex items-center gap-6 text-sm font-medium">
+      <a href="#features" class="text-slate-300 hover:text-white transition-colors">Features</a>
+      <a href="#pricing" class="text-slate-300 hover:text-white transition-colors">Pricing</a>
+      <a href="#download" class="text-slate-300 hover:text-white transition-colors">Download</a>
+      <a href="#contact" class="text-slate-300 hover:text-white transition-colors">Contact</a>
+    </div>
+
+    <div class="hidden md:flex items-center gap-3">
+      <button id="pwa-install-btn" onclick="installPWA()"
+         class="hidden border border-white/30 text-white/80 hover:text-white hover:border-white text-sm px-3 py-1.5 rounded-lg transition-colors">
+        ⬇ Install App
+      </button>
+      <a href="#pricing" onclick="openBuyModal('professional', 10); return false;"
+         class="bg-accent hover:bg-accentDark text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors">
+        Buy License
+      </a>
+      <a href="superuser.html"
+         class="border border-slate-400 hover:border-white text-slate-300 hover:text-white font-semibold text-sm px-4 py-2 rounded-lg transition-colors">
+        Admin →
+      </a>
+    </div>
+
+    <div class="flex md:hidden items-center gap-2">
+      <a href="#pricing" onclick="openBuyModal('professional', 10); return false;"
+         class="bg-accent text-white font-semibold text-xs px-3 py-1.5 rounded-lg">Buy</a>
+      <button onclick="toggleMobileMenu()" class="text-white ml-1 p-1">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="mobile-menu" class="md:hidden border-t border-white/10 bg-[rgba(10,22,40,0.97)]">
+    <div class="px-4 py-3 flex flex-col gap-3 text-sm">
+      <a href="#features" onclick="closeMobileMenu()" class="text-slate-300 hover:text-white py-1">Features</a>
+      <a href="#pricing" onclick="closeMobileMenu()" class="text-slate-300 hover:text-white py-1">Pricing</a>
+      <a href="#download" onclick="closeMobileMenu()" class="text-slate-300 hover:text-white py-1">Download</a>
+      <a href="#contact" onclick="closeMobileMenu()" class="text-slate-300 hover:text-white py-1">Contact</a>
+      <a href="superuser.html" class="text-amber-400 hover:text-amber-300 py-1 font-semibold">Admin Panel →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-bg min-h-screen flex flex-col justify-center relative overflow-hidden pt-16">
+  <div class="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
+    <span style="position:absolute;top:8%;left:6%;font-size:2.8rem;opacity:0.15;animation:floatA 6s ease-in-out infinite;">📊</span>
+    <span style="position:absolute;top:14%;left:82%;font-size:2.2rem;opacity:0.18;animation:floatB 7.5s ease-in-out infinite 1s;">⏱️</span>
+    <span style="position:absolute;top:55%;left:3%;font-size:1.8rem;opacity:0.13;animation:floatC 8s ease-in-out infinite 0.5s;">🖥️</span>
+    <span style="position:absolute;top:72%;left:88%;font-size:2.4rem;opacity:0.16;animation:floatA 5.5s ease-in-out infinite 2s;">📸</span>
+    <span style="position:absolute;top:30%;left:90%;font-size:2rem;opacity:0.14;animation:floatB 9s ease-in-out infinite 0.3s;">🔒</span>
+    <span style="position:absolute;top:80%;left:18%;font-size:2.2rem;opacity:0.17;animation:floatC 7s ease-in-out infinite 1.2s;">📋</span>
+    <span style="position:absolute;top:42%;left:78%;font-size:1.9rem;opacity:0.13;animation:floatA 8.5s ease-in-out infinite 2.5s;">💻</span>
+    <span style="position:absolute;top:88%;left:60%;font-size:2.5rem;opacity:0.12;animation:floatB 6.5s ease-in-out infinite 0.8s;">📈</span>
+    <span style="position:absolute;top:20%;left:50%;font-size:1.7rem;opacity:0.1;animation:floatC 9.5s ease-in-out infinite 3s;">🔍</span>
+    <span style="position:absolute;top:65%;left:42%;font-size:2rem;opacity:0.12;animation:floatA 7.2s ease-in-out infinite 1.8s;">⚡</span>
+    <span style="position:absolute;top:10%;left:35%;font-size:1.6rem;opacity:0.11;animation:floatB 8.2s ease-in-out infinite 0.6s;">🏢</span>
+    <span style="position:absolute;top:48%;left:15%;font-size:2.1rem;opacity:0.14;animation:floatC 6.8s ease-in-out infinite 2.2s;">👥</span>
+  </div>
+
+  <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center py-20" style="animation: fadeUp 0.8s ease both;">
+    <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-blue-200 text-sm font-medium px-4 py-1.5 rounded-full mb-8 backdrop-blur-sm">
+      <span class="pulse-dot w-2 h-2 bg-green-400 rounded-full inline-block"></span>
+      v1.0 — Real-time monitoring • Cloud sync • Windows ready
+    </div>
+
+    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-6 tracking-tight">
+      Know What Your Team<br/>
+      <span class="text-amber-400">Actually Works On</span>
+    </h1>
+
+    <p class="text-lg sm:text-xl text-blue-100/80 max-w-2xl mx-auto mb-10 leading-relaxed">
+      Silent background agent tracks app usage, idle time, and productivity.
+      Cloud-synced reports. Per-seat licensing. Instant deployment.
+    </p>
+
+    <div class="flex flex-wrap items-center justify-center gap-3 mb-12">
+      <a href="#download"
+         class="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold px-7 py-3.5 rounded-xl text-base shadow-lg hover:shadow-amber-500/30 transition-all hover:-translate-y-0.5">
+        ⬇ Download for Windows
+      </a>
+      <a href="#pricing" onclick="openBuyModal('professional', 10); return false;"
+         class="inline-flex items-center gap-2 border-2 border-white/40 hover:border-white text-white font-semibold px-6 py-3.5 rounded-xl text-base transition-all hover:-translate-y-0.5 hover:bg-white/10">
+        💳 Buy License
+      </a>
+      <a href="superuser.html"
+         class="inline-flex items-center gap-2 border border-white/25 hover:border-white/50 text-blue-200 hover:text-white font-medium px-6 py-3.5 rounded-xl text-base transition-all hover:-translate-y-0.5">
+        🔐 Admin Panel
+      </a>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-center gap-3 text-sm">
+      <span class="bg-white/10 text-blue-100 px-3 py-1.5 rounded-full border border-white/15 backdrop-blur-sm">✓ Silent Background Agent</span>
+      <span class="bg-white/10 text-blue-100 px-3 py-1.5 rounded-full border border-white/15 backdrop-blur-sm">⚡ Real-time Cloud Sync</span>
+      <span class="bg-white/10 text-blue-100 px-3 py-1.5 rounded-full border border-white/15 backdrop-blur-sm">📊 Detailed Reports</span>
+      <span class="bg-white/10 text-blue-100 px-3 py-1.5 rounded-full border border-white/15 backdrop-blur-sm">🔒 Tamper Protected</span>
+      <span class="bg-white/10 text-blue-100 px-3 py-1.5 rounded-full border border-white/15 backdrop-blur-sm">🏢 Multi-Company</span>
+    </div>
+  </div>
+
+  <div class="relative z-10 mt-auto">
+    <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full block -mb-px">
+      <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="white"/>
+    </svg>
+  </div>
+</section>
+
+<!-- MARQUEE STRIP -->
+<section class="bg-white py-6 overflow-hidden marquee-wrap" aria-hidden="true">
+  <div class="marquee-track select-none">
+    <div class="flex items-center gap-3 pr-3">
+      <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📊 App Usage Tracking</span>
+      <span class="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">⏱️ Time Tracking</span>
+      <span class="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📸 Screenshot Capture</span>
+      <span class="inline-flex items-center gap-1.5 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🔍 Idle Detection</span>
+      <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📋 Activity Logs</span>
+      <span class="inline-flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🔒 Uninstall Protection</span>
+      <span class="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">☁️ Cloud Sync</span>
+      <span class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📈 Productivity Reports</span>
+      <span class="inline-flex items-center gap-1.5 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🖥️ Multi-Monitor</span>
+      <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🏢 Per-Company Licensing</span>
+      <span class="inline-flex items-center gap-1.5 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🔑 License Management</span>
+      <span class="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">⚡ Offline-First</span>
+    </div>
+    <div class="flex items-center gap-3 pr-3">
+      <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📊 App Usage Tracking</span>
+      <span class="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">⏱️ Time Tracking</span>
+      <span class="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📸 Screenshot Capture</span>
+      <span class="inline-flex items-center gap-1.5 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🔍 Idle Detection</span>
+      <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📋 Activity Logs</span>
+      <span class="inline-flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🔒 Uninstall Protection</span>
+      <span class="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">☁️ Cloud Sync</span>
+      <span class="inline-flex items-center gap-1.5 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">📈 Productivity Reports</span>
+      <span class="inline-flex items-center gap-1.5 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🖥️ Multi-Monitor</span>
+      <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🏢 Per-Company Licensing</span>
+      <span class="inline-flex items-center gap-1.5 bg-purple-50 border border-purple-200 text-purple-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">🔑 License Management</span>
+      <span class="inline-flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap">⚡ Offline-First</span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<section class="bg-slate-50 border-y border-slate-100 py-10">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      <div data-reveal>
+        <div class="text-3xl sm:text-4xl font-black text-brand mb-1">100%</div>
+        <div class="text-sm font-medium text-slate-500">Silent Background</div>
+      </div>
+      <div data-reveal>
+        <div class="text-3xl sm:text-4xl font-black text-brand mb-1">30s</div>
+        <div class="text-sm font-medium text-slate-500">Screenshot Interval</div>
+      </div>
+      <div data-reveal>
+        <div class="text-3xl sm:text-4xl font-black text-brand mb-1">Real-time</div>
+        <div class="text-sm font-medium text-slate-500">Cloud Sync</div>
+      </div>
+      <div data-reveal>
+        <div class="text-3xl sm:text-4xl font-black text-brand mb-1">∞</div>
+        <div class="text-sm font-medium text-slate-500">Activity History</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES SECTION -->
+<section id="features" class="bg-white py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <div class="text-center mb-14" data-reveal>
+      <span class="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-200 mb-4 uppercase tracking-wider">Core Features</span>
+      <h2 class="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Everything You Need to Monitor Productivity</h2>
+      <p class="text-slate-500 max-w-2xl mx-auto text-base leading-relaxed">
+        A lightweight Windows agent silently tracks work patterns and syncs to your cloud dashboard in real time.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl mb-4">📊</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">App Usage Tracking</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Tracks every application your employees use — browser, Excel, Slack, custom tools — with precise time-on-app metrics.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-2xl mb-4">⏱️</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Active vs Idle Time</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Automatically detects mouse and keyboard activity to separate productive time from idle periods throughout the day.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-2xl mb-4">📸</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Periodic Screenshots</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Captures screenshots at configurable intervals (default 30s). Stored securely, accessible only to authorized managers.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-2xl mb-4">☁️</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Real-time Cloud Sync</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">All activity data syncs to Supabase cloud automatically. View live reports from anywhere without touching the employee's machine.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-2xl mb-4">🔒</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Uninstall Protection</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Password-protected removal. Registry persistence ensures the agent survives reboot and cannot be disabled without authorization.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center text-2xl mb-4">📋</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Detailed Activity Logs</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Complete timeline of window focus events, app switches, and session data. Export to CSV or view in the web dashboard.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-2xl mb-4">🔑</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">License Key Enforcement</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Per-seat licensing enforced at the server. Each machine registers against your company license. Seats are tracked in real time.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-2xl mb-4">📈</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Web Dashboard</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Manager portal to view all computers, activity timelines, productivity scores, and generate company-wide or per-employee reports.</p>
+      </div>
+
+      <div class="feature-card" data-reveal>
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-2xl mb-4">🏢</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Multi-Tenant Architecture</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Each company gets a fully isolated environment. Data is segregated at the database level — one company can never see another's data.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="bg-slate-50 py-20">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6">
+    <div class="text-center mb-14" data-reveal>
+      <span class="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-200 mb-4 uppercase tracking-wider">How It Works</span>
+      <h2 class="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Up and Running in 3 Steps</h2>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="text-center" data-reveal>
+        <div class="w-16 h-16 rounded-full bg-brand text-white text-2xl font-black flex items-center justify-center mx-auto mb-4 shadow-lg">1</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Buy License</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Choose a plan, enter your company details, pay via Stripe or Razorpay. Get your license key instantly.</p>
+      </div>
+      <div class="text-center" data-reveal>
+        <div class="w-16 h-16 rounded-full bg-brand text-white text-2xl font-black flex items-center justify-center mx-auto mb-4 shadow-lg">2</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Install Agent</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Download and install EPM Monitor on each employee's Windows PC. Enter your license key on first launch.</p>
+      </div>
+      <div class="text-center" data-reveal>
+        <div class="w-16 h-16 rounded-full bg-brand text-white text-2xl font-black flex items-center justify-center mx-auto mb-4 shadow-lg">3</div>
+        <h3 class="text-lg font-bold text-slate-900 mb-2">Monitor Dashboard</h3>
+        <p class="text-slate-500 text-sm leading-relaxed">Log into the web portal to see real-time activity, screenshots, and reports for all registered computers.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING SECTION -->
+<section id="pricing" class="bg-white py-20">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="text-center mb-14" data-reveal>
+      <span class="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-200 mb-4 uppercase tracking-wider">Simple Pricing</span>
+      <h2 class="text-3xl sm:text-4xl font-black text-slate-900 mb-4">Per-Seat. No Surprises.</h2>
+      <p class="text-slate-500 max-w-xl mx-auto">Pay only for the seats you need. Upgrade or downgrade any time. Annual billing saves 20%.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+
+      <!-- Starter -->
+      <div class="price-card" data-reveal>
+        <div class="mb-2">
+          <span class="inline-block bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Starter</span>
+        </div>
+        <div class="flex items-end gap-1 mt-4 mb-1">
+          <span class="text-4xl font-black text-slate-900">$5</span>
+          <span class="text-slate-400 text-sm mb-1.5">/seat/month</span>
+        </div>
+        <p class="text-slate-500 text-sm mb-6">Up to 10 seats. Perfect for small teams.</p>
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> App usage tracking</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Active/idle detection</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Activity logs (30 days)</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Web dashboard</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Cloud sync</li>
+          <li class="flex items-center gap-2 text-sm text-slate-400"><span class="text-slate-300 font-bold">✗</span> Screenshots</li>
+          <li class="flex items-center gap-2 text-sm text-slate-400"><span class="text-slate-300 font-bold">✗</span> Custom reports</li>
+        </ul>
+        <button onclick="openBuyModal('starter', 5)"
+          class="w-full py-3 border-2 border-brand text-brand font-semibold rounded-xl hover:bg-brand hover:text-white transition-all">
+          Get Started
+        </button>
+      </div>
+
+      <!-- Professional (featured) -->
+      <div class="price-card featured relative" data-reveal>
+        <div class="absolute -top-4 left-1/2 -translate-x-1/2">
+          <span class="bg-amber-400 text-slate-900 text-xs font-black px-4 py-1.5 rounded-full shadow-lg">MOST POPULAR</span>
+        </div>
+        <div class="mb-2">
+          <span class="inline-block bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Professional</span>
+        </div>
+        <div class="flex items-end gap-1 mt-4 mb-1">
+          <span class="text-4xl font-black text-white">$10</span>
+          <span class="text-blue-200 text-sm mb-1.5">/seat/month</span>
+        </div>
+        <p class="text-blue-200 text-sm mb-6">Up to 100 seats. Full feature set.</p>
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-center gap-2 text-sm text-white"><span class="text-green-300 font-bold">✓</span> Everything in Starter</li>
+          <li class="flex items-center gap-2 text-sm text-white"><span class="text-green-300 font-bold">✓</span> Screenshot capture (30s)</li>
+          <li class="flex items-center gap-2 text-sm text-white"><span class="text-green-300 font-bold">✓</span> Activity logs (1 year)</li>
+          <li class="flex items-center gap-2 text-sm text-white"><span class="text-green-300 font-bold">✓</span> Custom reports & CSV export</li>
+          <li class="flex items-center gap-2 text-sm text-white"><span class="text-green-300 font-bold">✓</span> Priority email support</li>
+          <li class="flex items-center gap-2 text-sm text-white"><span class="text-green-300 font-bold">✓</span> Uninstall protection</li>
+          <li class="flex items-center gap-2 text-sm text-white"><span class="text-green-300 font-bold">✓</span> API access</li>
+        </ul>
+        <button onclick="openBuyModal('professional', 10)"
+          class="w-full py-3 bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold rounded-xl transition-all shadow-lg">
+          Buy Now
+        </button>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="price-card" data-reveal>
+        <div class="mb-2">
+          <span class="inline-block bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Enterprise</span>
+        </div>
+        <div class="flex items-end gap-1 mt-4 mb-1">
+          <span class="text-4xl font-black text-slate-900">Custom</span>
+        </div>
+        <p class="text-slate-500 text-sm mb-6">Unlimited seats. Dedicated support.</p>
+        <ul class="space-y-3 mb-8 flex-1">
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Everything in Professional</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Unlimited seats</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> On-premise deployment</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Custom integrations</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> Dedicated account manager</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> SLA guarantee</li>
+          <li class="flex items-center gap-2 text-sm text-slate-600"><span class="text-green-500 font-bold">✓</span> White-labeling</li>
+        </ul>
+        <a href="#contact"
+          class="w-full py-3 border-2 border-purple-600 text-purple-700 font-semibold rounded-xl hover:bg-purple-600 hover:text-white transition-all text-center block">
+          Contact Sales
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD SECTION -->
+<section id="download" class="bg-slate-900 py-20">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+    <div data-reveal>
+      <span class="inline-block bg-blue-900/60 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-800 mb-6 uppercase tracking-wider">Download</span>
+      <h2 class="text-3xl sm:text-4xl font-black text-white mb-4">Install the Monitoring Agent</h2>
+      <p class="text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed">
+        Download the EPM Monitor installer for Windows. Requires a valid license key on first launch.
+        The agent runs silently in the background from system startup.
+      </p>
+
+      <div class="flex flex-wrap items-center justify-center gap-4 mb-10">
+        <a href="#" id="win-download-btn" onclick="handleDownload('windows'); return false;"
+           class="dl-btn bg-brand hover:bg-brandDark text-white">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/></svg>
+          <span>
+            <div class="text-xs opacity-75 text-left">Download for</div>
+            <div class="font-bold">Windows (x64)</div>
+          </span>
+        </a>
+
+        <div class="dl-btn bg-slate-700 text-slate-400 cursor-not-allowed opacity-60">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+          <span>
+            <div class="text-xs opacity-75 text-left">Coming soon</div>
+            <div class="font-bold">macOS</div>
+          </span>
+        </div>
+
+        <div class="dl-btn bg-slate-700 text-slate-400 cursor-not-allowed opacity-60">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M20.581 19.049l-1.55-1.55c.552-.962.847-2.081.847-3.249 0-3.584-2.916-6.5-6.5-6.5-1.168 0-2.287.295-3.249.847l-1.55-1.55A8.454 8.454 0 0112.378 6C17.012 6 21 9.988 21 14.622c0 1.641-.458 3.177-1.257 4.486l.838.837zM3.419 4.981l1.55 1.55A8.454 8.454 0 003.756 10.8C3.104 11.974 3 13.29 3 14.622 3 19.255 6.988 23.243 11.622 23.243h.756c1.168 0 2.287-.295 3.249-.847l1.55 1.55 1.414-1.414-15.758-15.758L3.419 4.981z"/></svg>
+          <span>
+            <div class="text-xs opacity-75 text-left">Coming soon</div>
+            <div class="font-bold">Linux</div>
+          </span>
+        </div>
+      </div>
+
+      <div class="inline-flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-xl px-5 py-3 text-sm text-slate-400">
+        <span class="text-green-400">✓</span>
+        Current version: <strong class="text-white">v1.0.0</strong>
+        <span class="text-slate-600">•</span>
+        <span>Requires Windows 10/11 x64</span>
+        <span class="text-slate-600">•</span>
+        <span id="dl-size">~85 MB installer</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="bg-white py-20">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center" data-reveal>
+    <span class="inline-block bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-200 mb-6 uppercase tracking-wider">Get in Touch</span>
+    <h2 class="text-3xl font-black text-slate-900 mb-4">Need Enterprise or Custom Setup?</h2>
+    <p class="text-slate-500 mb-8">Reach out for volume pricing, on-premise deployment, or custom integrations.</p>
+    <a href="mailto:support@epm-monitor.com"
+       class="inline-flex items-center gap-2 bg-brand hover:bg-brandDark text-white font-semibold px-8 py-3.5 rounded-xl text-base transition-all hover:-translate-y-0.5">
+      ✉ support@epm-monitor.com
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-slate-900 py-10">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex flex-col items-center md:items-start">
+        <div class="flex items-center gap-2">
+          <span class="text-white font-black italic text-lg">EPM</span>
+          <span class="bg-blue-400 text-white text-xs font-bold px-2 py-0.5 rounded-full">Monitor</span>
+        </div>
+        <span style="font-size:9px;letter-spacing:0.18em;color:#f59e0b;font-weight:600;margin-top:3px;">powered by REEV</span>
+      </div>
+      <div class="flex items-center gap-6 text-sm text-slate-400">
+        <a href="#features" class="hover:text-white transition-colors">Features</a>
+        <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+        <a href="#download" class="hover:text-white transition-colors">Download</a>
+        <a href="superuser.html" class="hover:text-white transition-colors">Admin</a>
+      </div>
+      <p class="text-slate-500 text-xs">© 2024 EPM Commercial. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- BUY OVERLAY -->
+<div id="buy-overlay" onclick="if(event.target===this)closeBuyModal()">
+  <div id="buy-modal">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h3 class="text-xl font-black text-slate-900" id="modal-plan-name">Professional License</h3>
+        <p class="text-slate-500 text-sm mt-0.5" id="modal-plan-price">$10/seat/month</p>
+      </div>
+      <button onclick="closeBuyModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">✕</button>
+    </div>
+
+    <!-- Step 1: Company details -->
+    <div id="buy-step-1">
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Company Name</label>
+          <input type="text" id="buy-company" class="modal-input" placeholder="Acme Corp"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Contact Email</label>
+          <input type="email" id="buy-email" class="modal-input" placeholder="admin@company.com"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Number of Seats</label>
+          <input type="number" id="buy-seats" class="modal-input" min="1" max="1000" value="5" oninput="updateOrderTotal()"/>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 rounded-xl p-3 mb-4 text-sm">
+        <div class="flex justify-between text-slate-600 mb-1">
+          <span id="order-desc">5 seats × $10/month</span>
+          <span id="order-subtotal">$50/month</span>
+        </div>
+        <div class="flex justify-between font-bold text-slate-900">
+          <span>Annual total (20% off)</span>
+          <span id="order-annual">$480/year</span>
+        </div>
+      </div>
+
+      <!-- Payment method -->
+      <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Payment Method</label>
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div class="pay-method selected" id="pm-stripe" onclick="selectPayMethod('stripe')">
+          <svg class="w-8 h-5 flex-shrink-0" viewBox="0 0 60 25" fill="none"><path d="M10 16.5C10 14.6 11.6 13 13.5 13s3.5 1.6 3.5 3.5S15.4 20 13.5 20 10 18.4 10 16.5z" fill="#635BFF"/><path d="M27.5 8.5l-3 14h-3l3-14h3zM40 10.5c-.8-.3-2-.6-3.5-.6-3.8 0-6.5 2-6.5 4.8 0 2.1 1.9 3.3 3.3 4 1.4.7 1.9 1.1 1.9 1.7 0 .9-1.1 1.4-2.2 1.4-1.5 0-2.3-.2-3.5-.7l-.5-.2-.5 3c.9.4 2.5.8 4.1.8 3.9 0 6.4-1.9 6.4-4.9 0-1.6-1-2.9-3.2-3.9-1.3-.7-2.1-1.1-2.1-1.8 0-.6.7-1.2 2.1-1.2 1.2 0 2.1.3 2.8.5l.3.2.6-2.9z" fill="#635BFF"/><path d="M48 8.5h-2.8l-4.3 14h3.1l.6-1.9h4.1l.4 1.9H52L48 8.5zm-2.7 9.7l1.7-4.8.9 4.8h-2.6z" fill="#635BFF"/><path d="M7.5 8.5H4.3L1 17.8l-.3 1.2c1.1 1.2 2.6 1.9 4.3 1.9 3.5 0 6.1-2.5 6.6-5.9H8.5c-.4 1.7-1.8 3-3.5 3-2 0-3.5-1.6-3.5-3.5 0-.9.3-1.7.9-2.3.5-.6 1.3-.9 2.1-.9 1 0 1.9.4 2.5 1.1l2.1-3.4C8.4 8.7 8 8.5 7.5 8.5z" fill="#635BFF"/></svg>
+          <div>
+            <div class="font-semibold text-sm text-slate-900">Stripe</div>
+            <div class="text-xs text-slate-400">Cards, wallets</div>
+          </div>
+        </div>
+        <div class="pay-method" id="pm-razorpay" onclick="selectPayMethod('razorpay')">
+          <svg class="w-8 h-5 flex-shrink-0" viewBox="0 0 40 20" fill="none"><rect width="40" height="20" rx="4" fill="#072654"/><text x="5" y="14" font-family="Arial" font-size="9" font-weight="bold" fill="white">Razorpay</text></svg>
+          <div>
+            <div class="font-semibold text-sm text-slate-900">Razorpay</div>
+            <div class="text-xs text-slate-400">UPI, NetBanking, INR</div>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="proceedToPayment()" id="pay-btn"
+        class="w-full py-3.5 bg-brand hover:bg-brandDark text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2">
+        <span id="pay-btn-text">Continue to Payment</span>
+      </button>
+      <p class="text-center text-xs text-slate-400 mt-3">🔒 Secured by SSL. Cancel anytime.</p>
+    </div>
+
+    <!-- Step 2: Processing -->
+    <div id="buy-step-2" class="hidden text-center py-6">
+      <div class="w-12 h-12 border-4 border-brand border-t-transparent rounded-full mx-auto mb-4" style="animation: spin 1s linear infinite;"></div>
+      <p class="text-slate-600 font-medium">Redirecting to payment...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Config ─────────────────────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://fcfezhoaxqroubphzzfz.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_vbBJaY8qXSyoNCwYLhn93g_qj2C_De6';
+
+  // Stripe & Razorpay publishable keys — replace with real keys
+  const STRIPE_PK = 'pk_test_YOUR_STRIPE_PUBLISHABLE_KEY';
+  const RAZORPAY_KEY = 'rzp_test_YOUR_RAZORPAY_KEY_ID';
+
+  // ── State ───────────────────────────────────────────────────────────────────
+  let selectedPlan = 'professional';
+  let selectedPricePerSeat = 10;
+  let selectedPayMethod = 'stripe';
+
+  const planPrices = { starter: 5, professional: 10, enterprise: null };
+
+  // ── Navbar scroll ──────────────────────────────────────────────────────────
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('topnav');
+    if (window.scrollY > 10) {
+      nav.style.background = 'rgba(10, 22, 40, 0.97)';
+    } else {
+      nav.style.background = 'rgba(10, 22, 40, 0.88)';
+    }
+  });
+
+  // ── Scroll reveal ──────────────────────────────────────────────────────────
+  const ro = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); ro.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('[data-reveal]').forEach(el => ro.observe(el));
+
+  // ── Mobile menu ────────────────────────────────────────────────────────────
+  function toggleMobileMenu() { document.getElementById('mobile-menu').classList.toggle('open'); }
+  function closeMobileMenu() { document.getElementById('mobile-menu').classList.remove('open'); }
+
+  // ── Buy modal ──────────────────────────────────────────────────────────────
+  function openBuyModal(plan, pricePerSeat) {
+    selectedPlan = plan;
+    selectedPricePerSeat = pricePerSeat || planPrices[plan];
+    const names = { starter: 'Starter License', professional: 'Professional License', enterprise: 'Enterprise License' };
+    document.getElementById('modal-plan-name').textContent = names[plan] || 'License';
+    document.getElementById('modal-plan-price').textContent =
+      selectedPricePerSeat ? `$${selectedPricePerSeat}/seat/month` : 'Custom pricing';
+    updateOrderTotal();
+    document.getElementById('buy-step-1').classList.remove('hidden');
+    document.getElementById('buy-step-2').classList.add('hidden');
+    document.getElementById('buy-overlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeBuyModal() {
+    document.getElementById('buy-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function updateOrderTotal() {
+    const seats = parseInt(document.getElementById('buy-seats')?.value) || 1;
+    const monthly = seats * (selectedPricePerSeat || 0);
+    const annual = Math.round(monthly * 12 * 0.8);
+    document.getElementById('order-desc').textContent = `${seats} seat${seats!==1?'s':''} × $${selectedPricePerSeat}/month`;
+    document.getElementById('order-subtotal').textContent = `$${monthly}/month`;
+    document.getElementById('order-annual').textContent = `$${annual}/year`;
+  }
+
+  function selectPayMethod(method) {
+    selectedPayMethod = method;
+    document.getElementById('pm-stripe').classList.toggle('selected', method === 'stripe');
+    document.getElementById('pm-razorpay').classList.toggle('selected', method === 'razorpay');
+  }
+
+  async function proceedToPayment() {
+    const company = document.getElementById('buy-company').value.trim();
+    const email = document.getElementById('buy-email').value.trim();
+    const seats = parseInt(document.getElementById('buy-seats').value);
+
+    if (!company || !email || !seats || seats < 1) {
+      showToast('Please fill in all fields', 'error');
+      return;
+    }
+    if (!email.includes('@')) {
+      showToast('Please enter a valid email', 'error');
+      return;
+    }
+
+    document.getElementById('buy-step-1').classList.add('hidden');
+    document.getElementById('buy-step-2').classList.remove('hidden');
+
+    try {
+      // Record lead in Supabase
+      await fetch(`${SUPABASE_URL}/rest/v1/purchase_leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          company_name: company,
+          email,
+          plan: selectedPlan,
+          seats,
+          payment_method: selectedPayMethod,
+          amount_monthly: seats * selectedPricePerSeat,
+          status: 'pending'
+        })
+      });
+    } catch (e) { /* non-critical */ }
+
+    if (selectedPayMethod === 'stripe') {
+      launchStripe(company, email, seats);
+    } else {
+      launchRazorpay(company, email, seats);
+    }
+  }
+
+  function launchStripe(company, email, seats) {
+    const monthly = seats * selectedPricePerSeat * 100; // cents
+    // In production: call your Cloudflare Worker to create a Stripe Checkout session
+    // For now, show info and redirect to Stripe payment link
+    showToast('Stripe integration — configure your Stripe publishable key & payment links', 'error');
+    document.getElementById('buy-step-1').classList.remove('hidden');
+    document.getElementById('buy-step-2').classList.add('hidden');
+  }
+
+  function launchRazorpay(company, email, seats) {
+    // In production: call your Cloudflare Worker to create a Razorpay order
+    const options = {
+      key: RAZORPAY_KEY,
+      amount: seats * selectedPricePerSeat * 100 * 12 * 80, // paise, annual with 20% off, ×80 for INR approx
+      currency: 'INR',
+      name: 'EPM Monitor',
+      description: `${selectedPlan} license — ${seats} seats (annual)`,
+      prefill: { email },
+      notes: { company, plan: selectedPlan, seats },
+      theme: { color: '#005f9e' },
+      handler: function(response) {
+        closeBuyModal();
+        showPayBanner('success', `Payment successful! Order ID: ${response.razorpay_order_id}. Your license key will be emailed to ${email}.`);
+      },
+      modal: { ondismiss: function() { closeBuyModal(); showPayBanner('cancelled', 'Payment cancelled. Your order was not completed.'); } }
+    };
+    if (window.Razorpay) {
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } else {
+      showToast('Razorpay integration — add your Razorpay key ID to enable payments', 'error');
+      document.getElementById('buy-step-1').classList.remove('hidden');
+      document.getElementById('buy-step-2').classList.add('hidden');
+    }
+  }
+
+  // ── Download handler ───────────────────────────────────────────────────────
+  async function handleDownload(platform) {
+    if (platform !== 'windows') { showToast('Coming soon for ' + platform, ''); return; }
+    showToast('Fetching download link...', '');
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/download_releases?platform=eq.windows&order=created_at.desc&limit=1`, {
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` }
+      });
+      const data = await res.json();
+      if (data && data[0] && data[0].download_url) {
+        window.location.href = data[0].download_url;
+      } else {
+        showToast('Download link not configured yet. Contact support@epm-monitor.com', 'error');
+      }
+    } catch (e) {
+      showToast('Download link not available. Contact support@epm-monitor.com', 'error');
+    }
+  }
+
+  // ── Pay banner ─────────────────────────────────────────────────────────────
+  function showPayBanner(type, msg) {
+    const b = document.getElementById('pay-banner');
+    b.className = type;
+    document.getElementById('pay-text').textContent = msg;
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast' + (type ? ` ${type}` : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  // ── Check pay result from URL ──────────────────────────────────────────────
+  (function() {
+    const p = new URLSearchParams(location.search);
+    if (p.get('payment') === 'success') showPayBanner('success', 'Payment successful! Check your email for your license key.');
+    if (p.get('payment') === 'cancelled') showPayBanner('cancelled', 'Payment was cancelled. Your order was not completed.');
+  })();
+
+  // Load Razorpay SDK dynamically
+  (function() {
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.async = true;
+    document.head.appendChild(s);
+  })();
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(r => console.log('SW registered:', r.scope))
+        .catch(e => console.warn('SW failed:', e));
+    });
+  }
+
+  // PWA install prompt
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.classList.remove('hidden');
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.classList.add('hidden');
+  });
+  function installPWA() {
+    if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }
+  }
+</script>
+</body>
+</html>

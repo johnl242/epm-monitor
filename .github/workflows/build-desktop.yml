@@ -1,0 +1,112 @@
+name: Build & Release Windows EXE
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop
+        run: npm install
+
+      - name: Build Windows installer
+        working-directory: desktop
+        run: npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Upload to Cloudflare R2
+        shell: bash
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_R2_ACCESS_KEY: ${{ secrets.CF_R2_ACCESS_KEY }}
+          CF_R2_SECRET_KEY: ${{ secrets.CF_R2_SECRET_KEY }}
+          CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          pip install boto3 --quiet
+          EXE_FILE=$(ls desktop/dist/*.exe | head -1)
+          FILENAME=$(basename "$EXE_FILE")
+          python - <<'PYEOF'
+          import boto3, os, sys
+          s3 = boto3.client(
+            's3',
+            endpoint_url=f"https://{os.environ['CF_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+            aws_access_key_id=os.environ['CF_R2_ACCESS_KEY'],
+            aws_secret_access_key=os.environ['CF_R2_SECRET_KEY'],
+            region_name='auto'
+          )
+          import glob
+          files = glob.glob('desktop/dist/*.exe')
+          if not files:
+            print("ERROR: No EXE found in desktop/dist/")
+            sys.exit(1)
+          exe = files[0]
+          filename = os.path.basename(exe)
+          version = os.environ.get('VERSION', '1.0.0')
+          key = f"epm-releases/{version}/{filename}"
+          print(f"Uploading {exe} -> {key}")
+          s3.upload_file(exe, os.environ['CF_R2_BUCKET'], key,
+            ExtraArgs={'ContentType': 'application/octet-stream', 'ContentDisposition': f'attachment; filename="{filename}"'})
+          latest_key = f"epm-releases/latest/{filename}"
+          s3.copy_object(Bucket=os.environ['CF_R2_BUCKET'], CopySource={'Bucket': os.environ['CF_R2_BUCKET'], 'Key': key}, Key=latest_key)
+          print(f"Done. R2 key: {key}")
+          PYEOF
+
+      - name: Update Supabase download_releases
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+          CF_R2_PUBLIC_URL: ${{ secrets.CF_R2_PUBLIC_URL }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          EXE_FILE=$(ls desktop/dist/*.exe | head -1)
+          FILENAME=$(basename "$EXE_FILE")
+          DOWNLOAD_URL="${CF_R2_PUBLIC_URL}/epm-releases/${VERSION}/${FILENAME}"
+          curl -s -X POST "${SUPABASE_URL}/rest/v1/download_releases" \
+            -H "apikey: ${SUPABASE_SERVICE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            -d "{\"platform\":\"windows\",\"version\":\"${VERSION}\",\"download_url\":\"${DOWNLOAD_URL}\",\"is_latest\":true}"
+          echo "Supabase updated with URL: ${DOWNLOAD_URL}"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EPM-Monitor-Windows-${{ steps.version.outputs.VERSION }}
+          path: desktop/dist/*.exe
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: desktop/dist/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

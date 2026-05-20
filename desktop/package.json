@@ -1,0 +1,67 @@
+{
+  "name": "epm-commercial",
+  "version": "1.0.0",
+  "description": "Employee Productivity Monitor - Commercial Edition",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
+  },
+  "author": "EPM Commercial",
+  "license": "Commercial",
+  "devDependencies": {
+    "electron": "28.3.3",
+    "electron-builder": "24.13.3",
+    "electron-rebuild": "^3.2.9"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "electron-log": "^5.0.1",
+    "node-fetch": "^2.7.0",
+    "uuid": "^9.0.1",
+    "winreg": "^1.2.5"
+  },
+  "build": {
+    "appId": "com.epm.commercial",
+    "productName": "EPM Monitor",
+    "copyright": "Copyright © 2024 EPM Commercial",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "EPM Monitor"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/",
+        "to": "assets/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  }
+}
