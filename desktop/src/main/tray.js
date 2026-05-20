@@ -6,6 +6,7 @@
 const { Tray, Menu, nativeImage, app, dialog, BrowserWindow } = require('electron');
 const path = require('path');
 const log = require('electron-log');
+const { checkForUpdates } = require('./updater');
 
 class TrayManager {
   constructor(mainApp) {
@@ -252,6 +253,10 @@ class TrayManager {
       },
       { type: 'separator' },
       {
+        label: 'Check for Updates',
+        click: () => checkForUpdates(false)
+      },
+      {
         label: 'About',
         click: () => {
           this.showAbout();
@@ -310,7 +315,7 @@ class TrayManager {
       type: 'info',
       title: 'About EPM Monitor',
       message: 'EPM Commercial',
-      detail: `Version: 1.0.0
+      detail: `Version: ${app.getVersion()}
 Copyright © 2024 EPM Commercial
 Employee Productivity Monitor
 

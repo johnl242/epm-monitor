@@ -21,6 +21,7 @@ const { LicenseManager } = require('./license');
 const { ConfigManager } = require('./config');
 const { UninstallProtection } = require('./uninstall-protection');
 const { SupabaseClient } = require('./supabase-client');
+const { checkForUpdates, scheduleUpdateCheck } = require('./updater');
 
 class EPMApplication {
   constructor() {
@@ -112,6 +113,8 @@ class EPMApplication {
         });
       }
 
+      // Schedule background update checks
+      scheduleUpdateCheck();
       log.info('EPM Commercial initialized successfully');
 
     } catch (error) {
