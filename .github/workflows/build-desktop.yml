@@ -102,6 +102,23 @@ jobs:
           path: desktop/dist/*.exe
           retention-days: 30
 
+      - name: Notify clients via Firebase RTDB
+        shell: bash
+        env:
+          FIREBASE_DB_SECRET: ${{ secrets.FIREBASE_DB_SECRET }}
+          CF_R2_PUBLIC_URL: ${{ secrets.CF_R2_PUBLIC_URL }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          EXE_FILE=$(ls desktop/dist/*.exe | head -1)
+          FILENAME=$(basename "$EXE_FILE")
+          DOWNLOAD_URL="${CF_R2_PUBLIC_URL}/epm-releases/${VERSION}/${FILENAME}"
+          RELEASED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          RTDB_URL="https://website-bf923-default-rtdb.asia-southeast1.firebasedatabase.app/epm_releases/latest.json?auth=${FIREBASE_DB_SECRET}"
+          curl -s -X PUT "$RTDB_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"version\":\"${VERSION}\",\"downloadUrl\":\"${DOWNLOAD_URL}\",\"releasedAt\":\"${RELEASED_AT}\"}"
+          echo "Firebase RTDB updated — clients notified in real-time"
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
